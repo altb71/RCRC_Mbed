@@ -19,5 +19,5 @@ private:
     AnalogIn a_in1;
     AnalogIn a_in2;
     float set_value;
-    LinearCharacteristics lc;
+    LinearCharacteristics lc_out, lc_in;
 };

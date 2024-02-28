@@ -23,17 +23,27 @@ realtime_thread::~realtime_thread() {}
 void realtime_thread::loop(void)
 {
   float tim;
+  float u_out, soll, stell;
   while (1)
     {
-    float u_out,tim;
     ThisThread::flags_wait_any(threadFlag);
 // --------------------- THE LOOP -----------------------------------------
+    // Zeitverhalten
     tim = ti.read();
-    if((int)floorf(ti.read())%2 <1)
-        m_io->write_aout(.9);
-    else
-        m_io->write_aout(.1);
+    soll = myDataLogger.get_set_value(tim);
+    m_io->write_aout(u_out);
+    myDataLogger.write_to_log(tim, u_out, m_io->read_ain1(), m_io->read_ain2());
     
+    /* Regler
+    soll = myDataLogger.get_set_value(tim);
+    stell = 4*(soll-m_io->read_ain2());
+    myDataLogger.write_to_log(tim, soll, stell, m_io->read_ain2()); 
+    m_io->write_aout(stell);*/
+
+    /* GPA
+    u_out = myGPA.update(u_out, m_io->read_ain2()); */
+    
+
 // read RCRC-Output with: ... = m_io->read_ain2();
 // here, you add your specific code, running in real-time (e.g. a controller)
 
