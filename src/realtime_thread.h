@@ -2,6 +2,9 @@
 #include "mbed.h"
 #include "IO_handler.h"
 #include "ThreadFlag.h"
+#include "observer.h"
+#include "Dense.h"
+#include "IIR_filter.h"
 
 class realtime_thread
 {

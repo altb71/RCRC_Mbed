@@ -7,7 +7,7 @@ extern GPA myGPA;
 
 // #### constructor
 uart_comm_thread_receive::uart_comm_thread_receive(BufferedSerial *com, float Ts):
-                                            thread(osPriorityHigh7, 512*2)//thread(osPriorityHigh1, 1024)//
+                                            thread(osPriorityBelowNormal1, 512*2)//thread(osPriorityHigh1, 1024)//
  {  
     // init serial
     this->uart = com;

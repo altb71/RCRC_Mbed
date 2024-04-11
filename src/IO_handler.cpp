@@ -6,7 +6,7 @@
 
 
 // constructors
-IO_handler::IO_handler(void): a_out(PA_5),a_in1(PA_6),a_in2(PA_7)
+IO_handler::IO_handler(void): a_out(PA_5),a_in1(PA_6),a_in2(PA_7),d_out(PC_8)
 {
     a_out.write(0);
     lc_in = LinearCharacteristics(0,1,-1,1);
@@ -33,4 +33,8 @@ void IO_handler::write_aout(float output)
 float IO_handler::get_set_value()
 {
     return set_value;
+}
+void IO_handler::write_dout(bool val)
+{
+    d_out = val;
 }

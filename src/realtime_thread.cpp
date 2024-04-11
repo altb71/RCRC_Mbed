@@ -5,7 +5,8 @@
 
 extern DataLogger myDataLogger;
 extern GPA myGPA;
-
+using namespace Eigen;
+using namespace std::chrono;
 // contructor for realtime_thread loop
 realtime_thread::realtime_thread(IO_handler *io,float Ts) : thread(osPriorityHigh1, 1024)
 {
@@ -22,30 +23,24 @@ realtime_thread::~realtime_thread() {}
 // this is the main loop called every Ts with high priority
 void realtime_thread::loop(void)
 {
-  float tim;
-  float u_out, soll, stell;
+  float tim,w,V;
+  Matrix<float,1,2> K2;
+  // AUFGABE 1.4
   while (1)
     {
     ThisThread::flags_wait_any(threadFlag);
 // --------------------- THE LOOP -----------------------------------------
-    // Zeitverhalten
-    tim = ti.read();
-    soll = myDataLogger.get_set_value(tim);
-    m_io->write_aout(u_out);
-    myDataLogger.write_to_log(tim, u_out, m_io->read_ain1(), m_io->read_ain2());
+    tim = duration_cast<seconds>(ti.elapsed_time()).count();
+    w = myDataLogger.get_set_value(tim);
     
-    /* Regler
-    soll = myDataLogger.get_set_value(tim);
-    stell = 4*(soll-m_io->read_ain2());
-    myDataLogger.write_to_log(tim, soll, stell, m_io->read_ain2()); 
-    m_io->write_aout(stell);*/
+    
+    // AUFGABE 1.4
+    
+    
+    myDataLogger.write_to_log(tim,w,0,0);
 
     /* GPA
     u_out = myGPA.update(u_out, m_io->read_ain2()); */
-    
-
-// read RCRC-Output with: ... = m_io->read_ain2();
-// here, you add your specific code, running in real-time (e.g. a controller)
 
     } // endof the main loop
 }

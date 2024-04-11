@@ -21,7 +21,7 @@ int main()
     IO_handler hardware;
     // the communication ...
     static BufferedSerial uart_serial(USBTX, USBRX, 115200);
-    uart_comm_thread_send uart_com_send(&hardware,&uart_serial, .004f); // this is the communication thread
+    uart_comm_thread_send uart_com_send(&hardware,&uart_serial, .01f); // this is the communication thread
     uart_comm_thread_receive uart_com_receive(&uart_serial, .01f); // this is the communication thread
     // the rt-thread
     realtime_thread rt_thread(&hardware,Ts);
