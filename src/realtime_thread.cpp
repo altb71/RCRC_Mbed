@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdint>
 #include "realtime_thread.h"
 #include "DataLogger.h"
@@ -23,22 +24,23 @@ realtime_thread::~realtime_thread() {}
 // this is the main loop called every Ts with high priority
 void realtime_thread::loop(void)
 {
-  float tim,w,V;
+  float tim,w,V,u,y2;
   Matrix<float,1,2> K2;
   // AUFGABE 1.4
   while (1)
     {
     ThisThread::flags_wait_any(threadFlag);
+    tim = 1e-6*(duration_cast<microseconds>(ti.elapsed_time()).count());
 // --------------------- THE LOOP -----------------------------------------
-    tim = duration_cast<seconds>(ti.elapsed_time()).count();
-    w = myDataLogger.get_set_value(tim);
-    
-    
+    w = myDataLogger.get_set_value(tim);    // get set values from datalogger
+    u_out = w;
+    m_io->write_aout(u_out);                // write to analog output
+    y2 = m_io->read_ain2();                 // read 2nd voltage at RRCRC
     // AUFGABE 1.4
+    // Aufgabe 2.6
     
     
-    myDataLogger.write_to_log(tim,w,0,0);
-
+    myDataLogger.write_to_log(tim,w,0,y2);
     /* GPA
     u_out = myGPA.update(u_out, m_io->read_ain2()); */
 
