@@ -23,7 +23,7 @@ private:
     Matrix<float,N,N> A;
     Matrix<float,N,1> B;
     Matrix<float,N,N_meas> H;
-    Matrix<float,N,1> x_hat,u_km1,dxdt;
+    Matrix<float,N,1> x_hat,dxdt_old,dxdt;
     Matrix<float,N_meas,1> y_obsv;
     float Ts;
 };

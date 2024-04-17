@@ -21,5 +21,6 @@ private:
     Ticker ticker;
     ThreadFlag threadFlag;
     void sendSignal();
+    float saturate(float,float,float);
     float Ts,u_out;
 };
