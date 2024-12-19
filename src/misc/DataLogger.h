@@ -12,6 +12,7 @@ public:
     DataLogger() {};
    
     virtual ~DataLogger();
+    char uint8_data[20];
 
     void    start_logging(void);
     uint16_t N_row;

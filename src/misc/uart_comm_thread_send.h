@@ -26,6 +26,7 @@ private:
     float Ts;
     void send(uint8_t , uint8_t , uint16_t, char *);
     void send_slow_data(void);
+    void send_fast_data(void);
     void send_essential_fast_data(void);
     void send_maxspeed_fast_data(void);
     void send_debug_data(void);
@@ -42,6 +43,7 @@ private:
     Ticker                  ticker;
 	void sendThreadFlag();
     IO_handler *m_io;
+    float tim;
     
 };
 

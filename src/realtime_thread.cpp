@@ -9,7 +9,7 @@ extern GPA myGPA;
 using namespace Eigen;
 using namespace std::chrono;
 // contructor for realtime_thread loop
-realtime_thread::realtime_thread(IO_handler *io,float Ts) : thread(osPriorityHigh1, 1024)
+realtime_thread::realtime_thread(IO_handler *io,float Ts) : thread(osPriorityHigh1, 1024),sp(USBTX,USBRX,460800,6,6)
 {
   this->Ts = Ts;        // the sampling time
   this->m_io = io;      // a pointer to the inputs/outputs
@@ -25,25 +25,21 @@ realtime_thread::~realtime_thread() {}
 void realtime_thread::loop(void)
 {
   float tim,w,V,u,y2;
+  float val[1];
   Matrix<float,1,2> K2;
+  char buffer[4];
   // AUFGABE 1.4
   while (1)
     {
     ThisThread::flags_wait_any(threadFlag);
     tim = 1e-6*(duration_cast<microseconds>(ti.elapsed_time()).count());
 // --------------------- THE LOOP -----------------------------------------
-    w = myDataLogger.get_set_value(tim);    // get set values from datalogger
-    u_out = w;
-    m_io->write_aout(u_out);                // write to analog output
-    y2 = m_io->read_ain2();                 // read 2nd voltage at RRCRC
-    // AUFGABE 1.4
-    // Aufgabe 2.6
+    sp.get(buffer, 4, true);            // read values (set values) from UART
+    w =	*(float *)&buffer[0];           // from Matlab 1 float value (4 bytes) are sent
+    m_io->write_aout(w);                // write to analog output
+    val[0] = m_io->read_ain2();                 // read 2nd voltage at RRCRC
+    sp.put((char*)&val[0],4,true);      // write to UART
     
-    
-    myDataLogger.write_to_log(tim,w,0,y2);
-    /* GPA
-    u_out = myGPA.update(u_out, m_io->read_ain2()); */
-
     } // endof the main loop
 }
 

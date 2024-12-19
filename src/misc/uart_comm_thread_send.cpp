@@ -17,6 +17,7 @@ uart_comm_thread_send::uart_comm_thread_send(IO_handler *io,BufferedSerial *com,
     this->Ts = Ts;
     gpa_stop_sent = false;
     this->m_io = io;
+    tim = 0;
 }
 
 // #### destructor
@@ -31,7 +32,7 @@ void uart_comm_thread_send::loop(void)
     {
         ThisThread::flags_wait_any(threadFlag);
         //---  The LOOP --------------------------------------------------------
-    	send_slow_data();
+    	send_fast_data();
 			
 	}// loop
 }
@@ -103,6 +104,16 @@ void uart_comm_thread_send::send_slow_data(void){
         }
 }
 
+void uart_comm_thread_send::send_fast_data()
+{
+     char pre[2] = {'\r','\n'};
+    tim += Ts;
+    float f_buffer[1] = {3.14};//{m_io->read_ain1()};//,m_io->read_ain2(),0,0};
+    uart->write(pre,2);
+    //uart->write((char*)&myDataLogger.Amp,4);
+    uart->write(&myDataLogger.uint8_data[0],4);
+
+}
 
 // ------------------- start uart ----------------
 void uart_comm_thread_send::start_uart(void){

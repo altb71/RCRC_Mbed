@@ -31,6 +31,7 @@ void uart_comm_thread_receive::loop(void)
     {
         ThisThread::flags_wait_any(threadFlag);
 		readUartIntoSeparateMessageBuffer();
+        //read_1_float();
 	}
 }
 
@@ -64,6 +65,7 @@ void uart_comm_thread_receive::recoverFromReadError(char newByte){
 }
 
 void uart_comm_thread_receive::readUartIntoSeparateMessageBuffer(){
+     char pre[2] = {'\r','\n'};
     while(uart->readable()){
 		bufLengthLLL = bufLengthLL;
 		bufLengthLL = bufLengthLast;
@@ -79,42 +81,65 @@ void uart_comm_thread_receive::readUartIntoSeparateMessageBuffer(){
 		// 		m_data->debug_var[4] = msgCount;
 		// 	}
 		// }
+        uint8_t k3,k2,k1,k0;
         for (int i = 0; i < bufLength; i++){
             messageBuffer[messageBufIndex] = buffer_rx[i]; // copy to separate buffer
 			byte_count++;
-			if(!isCsmErrorFlag){
-				// Read Header
-				if(messageBufIndex == 2){
-					checkMessageBufferHeader();
-				} else if(messageBufIndex == 6){
-					currentMessageDataSize = parseMessageBufferDataSize();
-				}
-
-				// Read Completed Message
-				bool isMessageLengthReached = messageBufIndex >= (currentMessageDataSize+UART_HEAD_LEN+UART_TAIL_LEN-1) && currentMessageDataSize>=0;
-				if(isMessageLengthReached){
-					parseMessageBuffer(i); 	// parse message
-					msgCount++;
-					messageBufIndex = messageBufLen-1;				// reset message buffer index to start (waiting for next message)
-					currentMessageDataSize = -1;
-				}
+            // Read Header
+            if(messageBufIndex == 1){
+                checkMessageBufferHeader();
+            } 
+            // Read Completed Message
+            bool isMessageLengthReached = (messageBufIndex % 6  == 5) & headerValid;
+            if(isMessageLengthReached){
+                headerValid = false;
+                k3 = (messageBufIndex-3+messageBufLen)%messageBufLen;
+                k2 = (messageBufIndex-2+messageBufLen)%messageBufLen;
+                k1 = (messageBufIndex-1+messageBufLen)%messageBufLen;
+                k0 = messageBufIndex;
+                myDataLogger.uint8_data[0] = messageBuffer[k3];
+                myDataLogger.uint8_data[1] = messageBuffer[k2];
+                myDataLogger.uint8_data[2] = messageBuffer[k1];
+                myDataLogger.uint8_data[3] = messageBuffer[k0];
+                messageBufIndex = ++messageBufIndex%messageBufLen;				// reset message buffer index to start (waiting for next message)
+                uart->write(pre,2);
+                uart->write(myDataLogger.uint8_data,4);
 			}
 			messageBufIndex = (messageBufIndex+1) % messageBufLen;
 			// Recovery
-			recoverFromReadError(buffer_rx[i]);
+			//recoverFromReadError(buffer_rx[i]);
         }
     }
 }
+void uart_comm_thread_receive::read_1_float()
+{
+    //bufLength = 0;
+    //for(uint8_t k=0;k<6;k++)
+    //    myDataLogger.uint8_data[k] = 100+k;//buffer_rx[k];
+     while(uart->readable()){
+		bufLength = uart->read(buffer_rx, sizeof(buffer_rx));
+        for(uint8_t k=0;k<(bufLength-1);k++)
+            {
+            if(buffer_rx[k]==13 && buffer_rx[k+1]==10)
+                {
+                bufLength = uart->read(buffer_rx, sizeof(buffer_rx));
+                if(bufLength>=4)
+                    for(uint8_t k=0;k<4;k++)
+                        myDataLogger.uint8_data[k] = buffer_rx[k];
+                else
+                    myDataLogger.uint8_data[0] = bufLength+100;
+                }
+            }
+        }
+//buffer_rx[5] = bufLength;
+}
 
 void uart_comm_thread_receive::checkMessageBufferHeader(){
-	bool headerValid = 	messageBuffer[0] == UART_HEAD_BY0 && 
-						messageBuffer[1] == UART_HEAD_BY1 && 
-						messageBuffer[2] == UART_HEAD_BY2;
+	headerValid = 	messageBuffer[(messageBufIndex+messageBufLen-1)%messageBufLen] == 13 && 
+						messageBuffer[messageBufIndex] == 10;
 	isCsmErrorFlag = true;
 	head_err_cnt += !headerValid;
-	if(!headerValid){
-		// m_data->debug_var[2] = (float) receive_cnt;
-	}
+	
 }
 
 int uart_comm_thread_receive::parseMessageBufferDataSize(){
@@ -142,59 +167,10 @@ bool uart_comm_thread_receive::verifyChecksumValid(uint16_t dataSize){
 // analyse data, see comments at top of this file for numbering
 bool uart_comm_thread_receive::parseMessageBuffer(int i){
     receive_cnt++;
-	char msg_id1 = messageBuffer[3];
-	char msg_id2 = messageBuffer[4];
-	uint16_t N = 256 * messageBuffer[6] + messageBuffer[5];
-    float f0,f1,A0,A1;
-    char stri[20];
-    uint8_t Nmeas;
-	if(!verifyChecksumValid(N)){
-		isCsmErrorFlag = true;
-		csm_err_cnt++;
-		// m_data->debug_var[0] = (float) buffer_rx[0];
-		// m_data->debug_var[1] = (float) messageBuffer[0];
-		return false;
-	}
-	switch(msg_id1)
-		{
-        case 210:
-            switch(msg_id2)
-                {
-                case 101:           // receive start signal and Amp, Freq, offset values
-                    if(myDataLogger.log_status == 1)
-                        {
-                        myDataLogger.reset_data();
-                        myDataLogger.input_type = (uint8_t)messageBuffer[7];
-                        myDataLogger.Amp = *(float *)&messageBuffer[8];
-                        myDataLogger.omega = *(float *)&messageBuffer[12];
-                        myDataLogger.offset = *(float *)&messageBuffer[16];
-                        myDataLogger.downsamp = (uint8_t)messageBuffer[20];
-                        myDataLogger.log_status = 2;
-                        }
-                    break;
-                }
-            break;      // case 210
-        case 250:
-            switch(msg_id2)
-                {
-                case 101:       // start GPA xternally
-                if(true)
-                        {
-                        myGPA.reset();
-                        f0 = *(float *)&messageBuffer[7];
-                        f1 = *(float *)&messageBuffer[11];
-                        A0 = *(float *)&messageBuffer[15];
-                        A1 = *(float *)&messageBuffer[19];
-                        Nmeas = (uint8_t)messageBuffer[23];
-                        myGPA.setup(f0, f1, (int)Nmeas, A0, A1, myGPA.get_Ts());
-                        //sprintf (stri, "Start GPA, N: %d",Nmeas);
-                        //send_text((char *)"Started GPA");
-                        myGPA.status = 2;
-                        }
-                    break;
-                }
-            break;      // case 250
-		}
+	myDataLogger.uint8_data[0] = messageBuffer[2];
+    myDataLogger.uint8_data[1] = messageBuffer[3];
+    myDataLogger.uint8_data[2] = messageBuffer[4];
+    myDataLogger.uint8_data[3] = messageBuffer[5];
 	return false;	
 }
 

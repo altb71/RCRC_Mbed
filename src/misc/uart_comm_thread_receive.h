@@ -26,6 +26,8 @@ private:
     int  parseMessageBufferDataSize(void);
     bool parseMessageBuffer(int i);
     bool verifyChecksumValid(uint16_t dataSize);
+    void read_1_float();
+    bool headerValid = false;
 
     float Ts;
 	char 	buffer_rx[20];     // RX buffer

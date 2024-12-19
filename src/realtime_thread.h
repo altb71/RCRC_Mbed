@@ -5,6 +5,7 @@
 #include "observer.h"
 #include "Dense.h"
 #include "IIR_filter.h"
+#include "serial_pipe.h"
 
 class realtime_thread
 {
@@ -22,4 +23,5 @@ private:
     ThreadFlag threadFlag;
     void sendSignal();
     float Ts,u_out;
+    SerialPipe sp;  // Serial pipe for UART communication
 };
