@@ -26,7 +26,7 @@ float IO_handler::read_ain2(void)
 
 void IO_handler::write_aout(float output)
 {
-    set_value = (output);
+    set_value = output;
     a_out.write(lc_out(set_value));
 }
 
