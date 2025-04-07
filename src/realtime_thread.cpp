@@ -24,7 +24,7 @@ realtime_thread::~realtime_thread() {}
 // this is the main loop called every Ts with high priority
 void realtime_thread::loop(void)
 {
-  float tim,w,V,u,y2;
+  float tim,w,V,u,x1,x2,y;
   Matrix<float,1,2> K2;
   // AUFGABE 1.4
   while (1)
@@ -35,12 +35,13 @@ void realtime_thread::loop(void)
     w = myDataLogger.get_set_value(tim);    // get set values from datalogger
     u_out = w;
     m_io->write_aout(u_out);                // write to analog output
-    y2 = m_io->read_ain2();                 // read 2nd voltage at RRCRC
+    x1 = m_io->read_ain1();                 // read 2nd voltage at RRCRC
+    x2 = m_io->read_ain2();                 // read 2nd voltage at RRCRC
     // AUFGABE 1.4
     // Aufgabe 2.6
     
     
-    myDataLogger.write_to_log(tim,w,0,y2);
+    myDataLogger.write_to_log(tim,w,x1,x2);
     /* GPA
     u_out = myGPA.update(u_out, m_io->read_ain2()); */
 
