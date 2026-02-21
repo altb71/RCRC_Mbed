@@ -41,15 +41,18 @@ void DataLogger::reset_data(void)
     new_data_available = false;
 }
 
-void DataLogger::write_to_log(float ti, float u, float x, float i)
+void DataLogger::write_to_log(float ti, float val1, float val2, float val3, float val4, float val5, float val6)
 {
     if (log_status == 2) {
         if (++ds_count == downsamp) {
             ds_count = 0;
             log_data[count * N_col + 0] = ti - ti_offset;
-            log_data[count * N_col + 1] = u;
-            log_data[count * N_col + 2] = x;
-            log_data[count * N_col + 3] = i;
+            log_data[count * N_col + 1] = val1;
+            log_data[count * N_col + 2] = val2;
+            log_data[count * N_col + 3] = val3;
+            log_data[count * N_col + 4] = val4;
+            log_data[count * N_col + 5] = val5;
+            log_data[count * N_col + 6] = val6;
             count++;
             if (count >= N_row) {
                 log_status = 3;

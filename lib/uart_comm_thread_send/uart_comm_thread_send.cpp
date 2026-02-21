@@ -67,7 +67,7 @@ void uart_comm_thread_send::send_slow_data(void)
     // char str[30];
     switch (send_state_slow) {
         case 100: // only at startup
-            send_text((char *)"Start RCRC on MBed");
+            send_text((char *)"RCRC Mbed firmware started");
             send_state_slow = 115;
             break;
         case 115:
@@ -77,23 +77,35 @@ void uart_comm_thread_send::send_slow_data(void)
             send(115, 1, 12, (char *)&buf[0]);
             send_state_slow = 210;
             break;
-        case 210: // number of iterations in the trafo
+        case 210: // stream datalogger content in chunks
             if (myDataLogger.new_data_available) {
-                if (myDataLogger.packet * PACK_SIZE < 4 * myDataLogger.N_col * myDataLogger.N_row)
-                    send(210,
-                         1 + myDataLogger.packet,
-                         PACK_SIZE,
-                         (char *)&(myDataLogger.log_data[myDataLogger.packet * (PACK_SIZE / 4)]));
-                else {
-                    send(210,
-                         1 + myDataLogger.packet,
-                         4 * myDataLogger.N_col * myDataLogger.N_row - myDataLogger.packet * PACK_SIZE,
-                         (char *)&(myDataLogger.log_data[myDataLogger.packet * PACK_SIZE / 4]));
+                const uint32_t totalBytes = 4 * myDataLogger.N_col * myDataLogger.N_row;
+                const uint32_t sentBytes = myDataLogger.packet * PACK_SIZE;
+                uint32_t remaining = (sentBytes < totalBytes) ? (totalBytes - sentBytes) : 0;
+
+                if (remaining == 0) {
                     myDataLogger.log_status = 1;
                     myDataLogger.new_data_available = false;
-                    send_state_slow = 211;
+                    send_state_slow = 211; // send terminator next
+                    break;
                 }
+
+                const uint16_t chunk = (remaining > PACK_SIZE) ? PACK_SIZE : (uint16_t)remaining;
+                uint8_t id2 = 1 + myDataLogger.packet;
+                if (id2 == 99) // reserve 99 for terminator
+                    id2 = 100;
+                else if (id2 > 99)
+                    id2 += 1; // shift up once we passed the gap
+
+                send(210, id2, chunk, (char *)&(myDataLogger.log_data[sentBytes / 4]));
+
                 ++myDataLogger.packet;
+
+                if (remaining <= PACK_SIZE) {
+                    myDataLogger.log_status = 1;
+                    myDataLogger.new_data_available = false;
+                    send_state_slow = 211; // send terminator next
+                }
             } else
                 send_state_slow = 250;
             break;

@@ -13,50 +13,76 @@ using namespace Eigen;
 using namespace std::chrono;
 
 // contructor for realtime_thread loop
-realtime_thread::realtime_thread(IO_handler *io, float Ts)
-    : thread(osPriorityHigh1, 1024)
+realtime_thread::realtime_thread(IO_handler *io_handler, float Ts)
+    : m_Thread(osPriorityHigh1, 1024)
 {
-    this->Ts = Ts;   // the sampling time
-    this->m_io = io; // a pointer to the inputs/outputs
-    ti.reset();
-    ti.start();
-    u_out = 0.0f;
+    m_Ts = Ts;                 // the sampling time
+    m_IO_handler = io_handler; // a pointer to the io handler
+    m_Timer.reset();
+    m_Timer.start();
 }
 
 // decontructor for controller loop
 realtime_thread::~realtime_thread() {}
 
-// ----------------------------------------------------------------------------
 // this is the main loop called every Ts with high priority
 void realtime_thread::loop(void)
 {
-    float tim, w, V, u, y1, y2;
-    Matrix<float, 1, 2> K2;
+    float time{0.0f}, w{0.0f}, y1{0.0f}, y2{0.0f};
+    float u{0.0f};
+    Matrix<float, 1, 2> K;
+    K << 1.418f, 7.341f;
     Vector2f x;
-    K2 << 1.41800f, 7.34136f;
-    V = 9.7594f;
-    observer obsv(Ts);
-    // AUFGABE 1.4
+    x.setZero();
+    float V = 9.7594f;
+    Vector2f x_hat;
+    x_hat.setZero();
+    observer obsv(m_Ts);
+
     while (true) {
-        ThisThread::flags_wait_any(threadFlag);
-        tim = 1e-6f * (float)(duration_cast<microseconds>(ti.elapsed_time()).count());
-        // --------------------- THE LOOP -----------------------------------------
-        w = myDataLogger.get_set_value(tim); // get set values from datalogger
-        // y1 = m_io->read_ain1();                 // read 2nd voltage at RRCRC
-        y2 = m_io->read_ain2();         // read 2nd voltage at RRCRC
-        obsv.do_step(u_out, y2);        // run observer, perform 1 step
-        x = obsv.get_x_obsv();          // get observed values, use for ss-cntrl.
-        u_out = V * w - K2 * x;         // calc. set values (ss-cntrl)
-        u_out = saturate(u_out, -1.0f, 1.0f); // limit the setvalue to +-1 (mainly for the observer!)
-        m_io->write_aout(u_out);        // write to analog output
+        ThisThread::flags_wait_any(m_ThreadFlag);
+        time = 1e-6f * (float)(duration_cast<microseconds>(m_Timer.elapsed_time()).count());
+        // --------------------- THE LOOP ---------------------
 
-        // AUFGABE 1.4
-        // Aufgabe 2.6
-        myDataLogger.write_to_log(tim, w, x(1), y2);
-        // // GPA
-        // u_out = myGPA.update(u_out, m_io->read_ain2());
+        w = myDataLogger.get_set_value(time); // get set values from the GUI
 
-    } // endof the main loop
+        y1 = m_IO_handler->read_ain1(); // read 1st voltage
+        y2 = m_IO_handler->read_ain2(); // read 2nd voltage
+
+        // m_IO_handler->write_aout(w); // write to analog output
+
+        // // --- P1, AUFGABE 1.11 ---
+        // myDataLogger.write_to_log(time, w, y1, y2, 0.0f, 0.0f, 0.0f);
+
+        // // --- P1, AUFGABE 1.12 ---
+        // u = 4.0f * (w - y2);          // simple P controller, gain = 4.0f
+        // u = saturate(u, -1.0f, 1.0f); // limit the setvalue to +-1
+        // m_IO_handler->write_aout(u);  // write to analog output
+        // myDataLogger.write_to_log(time, w, y1, y2, u, 0.0f, 0.0f);
+
+        // // --- P2, AUFGABE 1.4 ---
+        // x << y1, y2;                  // combine to vector
+        // // u = w - K * x;                // calculate control signal (systems-input)
+        // u = V * w - K * x;            // calculate control signal (systems-input)
+        // u = saturate(u, -1.0f, 1.0f); // limit the setvalue to +-1
+        // m_IO_handler->write_aout(u);  // write to analog output
+        // myDataLogger.write_to_log(time, w, y1, y2, u, 0.0f, 0.0f);
+
+        // --- P2, AUFGABE 1.5 ---
+        // x << y1, y2;                  // combine to vector
+        // u = V * w - K * x;            // calculate control signal (systems-input)
+        // u = saturate(u, -1.0f, 1.0f); // limit the setvalue to +-1
+        obsv.do_step(u, y2);          // run observer, perform 1 step
+        x_hat = obsv.get_x_obsv();    // get observed values
+        u = V * w - K * x_hat;        // calculate control signal (systems-input)
+        u = saturate(u, -1.0f, 1.0f); // limit the setvalue to +-1
+        m_IO_handler->write_aout(u);  // write to analog output
+        myDataLogger.write_to_log(time, w, y1, y2, u, x_hat(0), x_hat(1));
+
+        // --- P1, AUFGABE 1.8 ---
+        // GPA - do not overwrite u if you want to excite via the GPA
+        u = myGPA.update(w, y2); // GPA calculates future excitation exc(k+1)
+    }
 }
 
 float realtime_thread::saturate(float x, float ll, float ul)
@@ -68,11 +94,10 @@ float realtime_thread::saturate(float x, float ll, float ul)
     return x;
 }
 
-// ----------------------------------------------------------------------------
-void realtime_thread::sendSignal() { thread.flags_set(threadFlag); }
+void realtime_thread::sendSignal() { m_Thread.flags_set(m_ThreadFlag); }
 
 void realtime_thread::start_loop(void)
 {
-    thread.start(callback(this, &realtime_thread::loop));
-    ticker.attach(callback(this, &realtime_thread::sendSignal), microseconds{static_cast<int64_t>(Ts * 1e6f)});
+    m_Thread.start(callback(this, &realtime_thread::loop));
+    m_Ticker.attach(callback(this, &realtime_thread::sendSignal), microseconds{static_cast<int64_t>(m_Ts * 1e6f)});
 }

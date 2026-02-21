@@ -1,7 +1,6 @@
 #pragma once
 
 #include "mbed.h"
-// #include "uart_comm_thread.h"
 
 class GPA
 {

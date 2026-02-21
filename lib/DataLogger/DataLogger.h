@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 #define N_ROW 1000
-#define N_COL 4
+#define N_COL 7
 
 class DataLogger
 {
@@ -21,7 +21,7 @@ public:
     uint8_t input_type; // 1 = step, 2 = sine
     void reset_data(void);
     bool new_data_available;
-    void write_to_log(float, float, float, float);
+    void write_to_log(float ti, float val1, float val2, float val3, float val4, float val5, float val6);
     float get_set_value(float);
     float Amp, omega, offset;
     uint8_t downsamp;
