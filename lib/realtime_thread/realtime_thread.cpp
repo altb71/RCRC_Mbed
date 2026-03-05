@@ -28,8 +28,7 @@ realtime_thread::~realtime_thread() {}
 // this is the main loop called every Ts with high priority
 void realtime_thread::loop(void)
 {
-    float time{0.0f}, w{0.0f}, y1{0.0f}, y2{0.0f};
-    float u{0.0f};
+    float time{0.0f}, w{0.0f}, y1{0.0f}, y2{0.0f}, u(0.0f), exc(0.0f);
     Matrix<float, 1, 2> K;
     K << 1.418f, 7.341f;
     Vector2f x;
@@ -80,8 +79,9 @@ void realtime_thread::loop(void)
         myDataLogger.write_to_log(time, w, y1, y2, u, x_hat(0), x_hat(1));
 
         // --- P1, AUFGABE 1.8 ---
-        // GPA - do not overwrite u if you want to excite via the GPA
-        u = myGPA.update(w, y2); // GPA calculates future excitation exc(k+1)
+        // GPA - do not overwrite exc if you want to excite via the GPA
+        // m_IO_handler->write_aout(exc); // write to analog output
+        exc = myGPA.update(w, y2); // GPA calculates future excitation exc(k+1)
     }
 }
 
