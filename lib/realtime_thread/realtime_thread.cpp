@@ -59,49 +59,12 @@ void realtime_thread::loop(void)
         const float y1 = m_IO_handler->read_ain1(); // read 1st voltage
         const float y2 = m_IO_handler->read_ain2(); // read 2nd voltage
 
-        // m_IO_handler->write_aout(w); // write to analog output
+        u = w + 1.0f + exc;
 
-        // // --- P1, AUFGABE 1.11 ---
-        // // log the values of time, set value w, measurements y1 and y2
-        // myDataLogger.write_to_log(time, w, y1, y2, 0.0f, 0.0f, 0.0f);
+        m_IO_handler->write_aout(u); // write to analog output
+        myDataLogger.write_to_log(time, u, y1, 0.0f, 0.0f, 0.0f, 0.0f);
 
-        // // --- P1, AUFGABE 1.12 ---
-        // // implement a simple P controller with gain = 4.0f
-        // u = 4.0f * (w - y2);          // simple P controller, gain = 4.0f
-        // u = saturate(u, -1.0f, 1.0f); // limit the setvalue to +-1
-        // m_IO_handler->write_aout(u);  // write to analog output
-        // myDataLogger.write_to_log(time, w, y1, y2, u, 0.0f, 0.0f);
-
-        // // --- P2, AUFGABE 1.4 ---
-        // // implement a state feedback controller with state vector x = (y1, y2)^T, gain K
-        // x << y1, y2;                  // state vector
-        // u = w - K * x;                // state feedback control law
-        // u = saturate(u, -1.0f, 1.0f); // limit the setvalue to +-1
-        // m_IO_handler->write_aout(u);  // write to analog output
-        // myDataLogger.write_to_log(time, w, y1, y2, u, 0.0f, 0.0f);
-
-        // // --- P2, AUFGABE 1.5 ---
-        // // implement a state feedback controller with state vector x = (y1, y2)^T, gain K and feedforward term V
-        // x << y1, y2;                  // state vector
-        // u = V * w - K * x;            // state feedback control law
-        // u = saturate(u, -1.0f, 1.0f); // limit the setvalue to +-1
-        // m_IO_handler->write_aout(u);  // write to analog output
-        // myDataLogger.write_to_log(time, w, y1, y2, u, 0.0f, 0.0f);
-
-        // --- P2, AUFGABE 2.5 & 2.6 ---
-        // implement an observer based state feedback controller
-        x_hat = obsv.do_step(u, y2);
-        // x << y1, y2;                   // state vector
-        // u = V * w - K * x;             // state feedback control law
-        u = V * (w + exc) - K * x_hat; // state feedback control law with observer state x_hat
-        u = saturate(u, -1.0f, 1.0f);  // limit the setvalue to +-1
-        m_IO_handler->write_aout(u);   // write to analog output
-        myDataLogger.write_to_log(time, w, y1, y2, u, x_hat(0), x_hat(1));
-
-        // --- P1, AUFGABE 1.8 ---
-        // GPA - do not overwrite exc if you want to excite via the GPA
-        // m_IO_handler->write_aout(exc); // write to analog output
-        exc = myGPA.update(exc, y2); // GPA calculates future excitation exc(k+1)
+        exc = myGPA.update(exc, y1); // GPA calculates future excitation exc(k+1)
     }
 }
 

@@ -4,15 +4,17 @@
 
 // constructors
 IO_handler::IO_handler(void)
-    : m_a_out(PA_5)
-    , m_a_in1(PA_6)
+    : m_a_out(PA_4)
+    , m_a_in1(PB_0)
     , m_a_in2(PA_7)
     , m_d_out(PC_8)
 {
     m_a_out.write(0.0f);
     m_set_value = 0.0f;
-    m_lc_in.init(0.0f, 1.0f, -1.0f, 1.0f);
-    m_lc_out.init(-1.0f, 1.0f, 0.0f, 1.0f);
+    // m_lc_in.init(0.0f, 1.0f, -1.0f, 1.0f);
+    // m_lc_out.init(-1.0f, 1.0f, 0.0f, 1.0f);
+    m_lc_in.init(0.0f, 1.0f, 0.0f, 3.3f);
+    m_lc_out.init(0.0f, 3.3f, 0.0f, 1.0f);
 }
 
 IO_handler::~IO_handler() {}
